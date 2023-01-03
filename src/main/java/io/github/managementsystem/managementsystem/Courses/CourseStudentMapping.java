@@ -7,6 +7,7 @@ import lombok.NoArgsConstructor;
 
 import javax.validation.constraints.NotBlank;
 import java.math.BigInteger;
+import java.util.List;
 
 @Data
 @NoArgsConstructor
@@ -18,6 +19,13 @@ public class CourseStudentMapping {
     private BigInteger courseId;
 
     private BigInteger studentId;
+
+    @NotBlank(message = "Subjects is required")
+    private String subjects;
+
+    private List<BigInteger> subjectList;
+
+    private BigInteger subjectId;
 
     @NotBlank(message = "Course Name is required")
     private String courseName;

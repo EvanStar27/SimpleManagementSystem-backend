@@ -41,6 +41,20 @@ public class UserRoleMappingRepository {
         return null;
     }
 
+    public int setStudentRole(BigInteger userId) {
+        String sql = """
+                INSERT INTO tbl_user_role_mappings 
+                (user_id, role_id) VALUES (?, ?);
+                """;
+
+        return jdbcTemplate.update(con -> {
+            PreparedStatement preparedStatement = con.prepareStatement(sql);
+            preparedStatement.setInt(1, userId.intValue());
+            preparedStatement.setInt(2, 2); // 2 - ROLE_STUDENT
+            return preparedStatement;
+        });
+    }
+
     public void createAdminUser() {
         String sql = """
             INSERT INTO tbl_user_role_mappings (ur_mapping_id, user_id, role_id)

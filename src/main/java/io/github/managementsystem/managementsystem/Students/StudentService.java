@@ -15,4 +15,6 @@ public interface StudentService {
     Student deleteStudent(BigInteger studentId);
 
     Integer getTotalStudents();
+
+    Student findByUserId(BigInteger userId);
 }

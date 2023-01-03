@@ -1,5 +1,7 @@
 package io.github.managementsystem.managementsystem.Users;
 
+import io.github.managementsystem.managementsystem.Exceptions.DuplicateKeyException;
+import io.github.managementsystem.managementsystem.Roles.UserRoleMappingRepository;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
@@ -13,6 +15,7 @@ import java.math.BigInteger;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public class UserRepository {
@@ -20,10 +23,13 @@ public class UserRepository {
     @Autowired
     private JdbcTemplate jdbcTemplate;
 
+    @Autowired
+    private UserRoleMappingRepository userRoleMappingRepository;
+
     public void createTable() {
         String sql = "CREATE TABLE IF NOT EXISTS tbl_users (" +
                 "user_id INT PRIMARY KEY AUTO_INCREMENT," +
-                "username VARCHAR(255) NOT NULL," +
+                "username VARCHAR(255) UNIQUE NOT NULL," +
                 "password VARCHAR(255) NOT NULL);";
 
         jdbcTemplate.update(sql);
@@ -49,7 +55,19 @@ public class UserRepository {
         System.out.println("Admin user created...");
     }
 
-    public UserDto save(UserDto user) {
+    public UserDto save(UserDto user) throws DuplicateKeyException {
+        String checkSql = """
+                SELECT * FROM tbl_users
+                WHERE username = ?;
+                """;
+
+        Optional<UserDto> userObj = jdbcTemplate.query(checkSql, new BeanPropertyRowMapper<>(UserDto.class), user.getUsername())
+                .stream().findFirst();
+
+        if (userObj.isPresent()) {
+            throw new DuplicateKeyException("User already exists");
+        }
+
         String sql = "INSERT INTO tbl_users " +
                 "(username, password) " +
                 "VALUES (?, ?);";
@@ -67,6 +85,7 @@ public class UserRepository {
         }, keyHolder);
 
         user.setUserId((BigInteger) keyHolder.getKey());
+        userRoleMappingRepository.setStudentRole(user.getUserId());
         return user;
     }
 

@@ -33,19 +33,19 @@ public class StudentController {
     @GetMapping(path = "/{studentId}")
     @PreAuthorize("hasRole('ADMIN')")
     public ResponseEntity<?> getStudentById(@PathVariable("studentId") BigInteger studentId) {
-        Map<String, String> errors = new HashMap<>();
         Student student = studentService.findById(studentId);
+        return new ResponseEntity<>(student, HttpStatus.OK);
+    }
 
-        if (student == null) {
-            errors.put("message", "Student Not Found");
-            return new ResponseEntity<>(errors, HttpStatus.NOT_FOUND);
-        }
-
+    @GetMapping(path = "/user/{userId}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STUDENT')")
+    public ResponseEntity<?> getStudentByUserId(@PathVariable("userId") BigInteger userId) {
+        Student student = studentService.findByUserId(userId);
         return new ResponseEntity<>(student, HttpStatus.OK);
     }
 
     @PostMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STUDENT')")
     public ResponseEntity<?> saveStudent(@Valid @RequestBody Student student, BindingResult bindingResult) {
         Map<String, String> errors = new HashMap<>();
 
@@ -63,7 +63,7 @@ public class StudentController {
     }
 
     @PutMapping(path = "/{studentId}")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STUDENT')")
     public ResponseEntity<?> updateStudentById(
             @PathVariable("studentId") BigInteger studentId,
             @Valid @RequestBody Student student,

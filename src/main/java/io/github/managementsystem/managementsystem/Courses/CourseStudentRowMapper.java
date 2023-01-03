@@ -14,6 +14,7 @@ public class CourseStudentRowMapper implements RowMapper<CourseStudentMapping> {
                 .csMappingId(new BigInteger(String.valueOf(rs.getInt("cs_mapping_id"))))
                 .courseId(new BigInteger(String.valueOf(rs.getInt("course_id"))))
                 .studentId(new BigInteger(String.valueOf(rs.getInt("student_id"))))
+                .subjects(rs.getString("subjects"))
                 .courseName(rs.getString("course_name"))
                 .description(rs.getString("description"))
                 .firstName(rs.getString("first_name"))

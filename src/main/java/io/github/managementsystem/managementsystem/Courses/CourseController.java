@@ -22,7 +22,7 @@ public class CourseController {
     private CourseService courseService;
 
     @GetMapping
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STUDENT')")
     public ResponseEntity<?> fetchAllCourses(
             @RequestParam(required = false) String name
     ) {
@@ -132,7 +132,7 @@ public class CourseController {
     }
 
     @PostMapping("/enroll")
-    @PreAuthorize("hasRole('ADMIN')")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STUDENT')")
     public ResponseEntity<?> enrollToCourse(
             @RequestBody CourseStudentMapping courseStudentMapping,
             BindingResult bindingResult
@@ -146,5 +146,26 @@ public class CourseController {
         }
 
         return new ResponseEntity<>(savedCourseStudentMapping, HttpStatus.CREATED);
+    }
+
+    @PutMapping("/enroll/{id}")
+    @PreAuthorize("hasAnyRole('ADMIN', 'STUDENT')")
+    public ResponseEntity<?> updateEnrolledCourse(
+            @PathVariable("id") BigInteger csMappingId,
+            @RequestBody CourseStudentMapping courseStudentMapping,
+            BindingResult bindingResult) {
+
+        Map<String, String> errors = new HashMap<>();
+        CourseStudentMapping updatedCourseStudentMapping = courseService.updateEnrolledCourse(
+                csMappingId, courseStudentMapping);
+
+//        System.out.println(csMappingId + ": " + courseStudentMapping);
+        if (updatedCourseStudentMapping == null) {
+            errors.put("message", "Invalid Request");
+            return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
+        }
+
+        return new ResponseEntity<>(updatedCourseStudentMapping, HttpStatus.OK);
+//        return new ResponseEntity<>("DONE", HttpStatus.OK);
     }
 }

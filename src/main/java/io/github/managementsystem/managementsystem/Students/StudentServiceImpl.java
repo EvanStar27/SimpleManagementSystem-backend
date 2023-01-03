@@ -1,5 +1,6 @@
 package io.github.managementsystem.managementsystem.Students;
 
+import io.github.managementsystem.managementsystem.Exceptions.NotFoundException;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -19,7 +20,8 @@ public class StudentServiceImpl implements StudentService {
 
     @Override
     public Student findById(BigInteger studentId) {
-        return studentRepository.findById(studentId);
+        return studentRepository.findById(studentId)
+                .orElseThrow(() -> new NotFoundException("Student Not Found"));
     }
 
     @Override
@@ -40,5 +42,11 @@ public class StudentServiceImpl implements StudentService {
     @Override
     public Integer getTotalStudents() {
         return studentRepository.getTotalStudents();
+    }
+
+    @Override
+    public Student findByUserId(BigInteger userId) {
+        return studentRepository.findByUserId(userId)
+                .orElseThrow(() -> new NotFoundException("User does not have a student profile"));
     }
 }

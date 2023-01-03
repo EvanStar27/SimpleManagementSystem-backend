@@ -23,4 +23,6 @@ public interface CourseService {
     Integer getTotalCourses();
 
     List<Stats> getDashboardChartStats();
+
+    CourseStudentMapping updateEnrolledCourse(BigInteger csMappingId, CourseStudentMapping courseStudentMapping);
 }

@@ -17,23 +17,5 @@ import java.util.Map;
 @RequestMapping("/api/v1/users")
 public class UserController {
 
-    @Autowired
-    private UserServices userServices;
 
-    @PostMapping
-    public ResponseEntity<?> register(@Valid @RequestBody UserDto user, BindingResult bindingResult) {
-        Map<String, String> errors = new HashMap<>();
-
-        if (bindingResult.hasErrors()) {
-            bindingResult.getFieldErrors()
-                    .forEach(f -> {
-                        errors.put(f.getField(), f.getDefaultMessage());
-                    });
-
-            return new ResponseEntity<>(errors, HttpStatus.BAD_REQUEST);
-        }
-
-        UserDto savedUser = userServices.registerUser(user);
-        return new ResponseEntity<>(savedUser, HttpStatus.CREATED);
-    }
 }

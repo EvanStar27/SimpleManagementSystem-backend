@@ -1,5 +1,6 @@
 package io.github.managementsystem.managementsystem.Courses;
 
+import io.github.managementsystem.managementsystem.Mappings.CourseSubjectMapping_;
 import io.github.managementsystem.managementsystem.Stats.Stats;
 import io.github.managementsystem.managementsystem.Stats.StatsRowMapper;
 import io.github.managementsystem.managementsystem.Students.Student;
@@ -7,6 +8,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.dao.EmptyResultDataAccessException;
 import org.springframework.jdbc.core.BeanPropertyRowMapper;
 import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.jdbc.core.namedparam.MapSqlParameterSource;
+import org.springframework.jdbc.core.namedparam.NamedParameterJdbcTemplate;
+import org.springframework.jdbc.core.namedparam.SqlParameterSource;
 import org.springframework.jdbc.support.GeneratedKeyHolder;
 import org.springframework.jdbc.support.KeyHolder;
 import org.springframework.stereotype.Repository;
@@ -21,6 +25,9 @@ public class CourseRepository {
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
+
+    @Autowired
+    private NamedParameterJdbcTemplate namedParameterJdbcTemplate;
 
     public void createTable() {
         String sql = "CREATE TABLE IF NOT EXISTS tbl_courses (" +
@@ -207,6 +214,84 @@ public class CourseRepository {
         }, keyHolder);
 
         courseStudentMapping.setCsMappingId((BigInteger) keyHolder.getKey());
+        return courseStudentMapping;
+    }
+
+    public CourseStudentMapping updateEnrolledCourse(BigInteger csMappingId, CourseStudentMapping courseStudentMapping) {
+        String studentSql = "SELECT * FROM tbl_students WHERE student_id = ?";
+        String courseSql = "SELECT * FROM tbl_courses WHERE course_id = ?";
+        String sql = """
+                     INSERT INTO tbl_course_subject_mappings (cs_mapping_id, subject_id)
+                     SELECT * FROM (SELECT ? AS cs_mapping_id, ? AS subject_id) AS tmp
+                     WHERE NOT EXISTS (
+                        SELECT cs_mapping_id, subject_id FROM tbl_course_subject_mappings WHERE cs_mapping_id = ? AND subject_id = ?
+                     ) LIMIT 1;
+                     """;
+
+
+        // Student Exists
+        try {
+            jdbcTemplate.queryForObject(
+                    studentSql,
+                    new BeanPropertyRowMapper<>(Student.class),
+                    courseStudentMapping.getStudentId());
+        } catch (EmptyResultDataAccessException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        // Course Exists
+        try {
+            jdbcTemplate.queryForObject(
+                    courseSql,
+                    new BeanPropertyRowMapper<>(Course.class),
+                    courseStudentMapping.getCourseId());
+        } catch (EmptyResultDataAccessException e) {
+            e.printStackTrace();
+            return null;
+        }
+
+        // Update Course ID
+        String courseUpdateSql = """
+                UPDATE tbl_course_student_mappings
+                SET course_id = ?
+                WHERE cs_mapping_id = ?
+                """;
+        jdbcTemplate.update(con -> {
+            PreparedStatement preparedStatement = con.prepareStatement(courseUpdateSql);
+            preparedStatement.setInt(1, courseStudentMapping.getCourseId().intValue());
+            preparedStatement.setInt(2, courseStudentMapping.getCsMappingId().intValue());
+            return preparedStatement;
+        });
+
+        // Update Subjects
+        courseStudentMapping.getSubjectList().forEach(subjectId -> {
+            jdbcTemplate.update(con -> {
+                PreparedStatement preparedStatement = con.prepareStatement(
+                        sql, Statement.RETURN_GENERATED_KEYS
+                );
+                preparedStatement.setInt(1, csMappingId.intValue());
+                preparedStatement.setInt(2, subjectId.intValue());
+                preparedStatement.setInt(3, csMappingId.intValue());
+                preparedStatement.setInt(4, subjectId.intValue());
+                return preparedStatement;
+            });
+        });
+
+        // Delete left out subjects
+        String deleteSql = """
+                DELETE FROM tbl_course_subject_mappings
+                WHERE cs_mapping_id = :csMappingId AND subject_id NOT IN (:subjectIds);
+                """;
+
+        SqlParameterSource parameterSource = new MapSqlParameterSource(
+                "subjectIds",
+                courseStudentMapping.getSubjectList()
+        ).addValue("csMappingId", csMappingId);
+
+        namedParameterJdbcTemplate.update(deleteSql,
+                parameterSource);
+
         return courseStudentMapping;
     }
 

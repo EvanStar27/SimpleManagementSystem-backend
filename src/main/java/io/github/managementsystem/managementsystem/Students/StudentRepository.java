@@ -13,6 +13,7 @@ import java.math.BigInteger;
 import java.sql.PreparedStatement;
 import java.sql.Statement;
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 @NoArgsConstructor
@@ -24,9 +25,11 @@ public class StudentRepository {
     public void createTable() {
         String sql = "CREATE TABLE IF NOT EXISTS tbl_students (" +
                 "student_id INT PRIMARY KEY AUTO_INCREMENT," +
+                "user_id INT NOT NULL," +
                 "first_name VARCHAR(255) NOT NULL," +
                 "last_name VARCHAR(255) NOT NULL," +
-                "gender VARCHAR(7) NOT NULL);";
+                "gender VARCHAR(7) NOT NULL," +
+                "FOREIGN KEY (user_id) REFERENCES tbl_users(user_id) ON DELETE CASCADE);";
 
         jdbcTemplate.update(sql);
         System.out.println("tbl_students created...");
@@ -42,25 +45,19 @@ public class StudentRepository {
                 "%" + name + "%");
     }
 
-    public Student findById(BigInteger studentId) {
+    public Optional<Student> findById(BigInteger studentId) {
         String sql = "SELECT * FROM tbl_students WHERE student_id = ?;";
 
-        try {
-            return jdbcTemplate.queryForObject(
-                    sql,
-                    new BeanPropertyRowMapper<>(Student.class),
-                    studentId
-            );
-        } catch (EmptyResultDataAccessException e) {
-            e.printStackTrace();
-        }
-
-        return null;
+        return jdbcTemplate.query(
+                sql,
+                new BeanPropertyRowMapper<>(Student.class),
+                studentId
+        ).stream().findFirst();
     }
 
     public Student save(Student student) {
-        String sql = "INSERT INTO tbl_students (first_name, last_name, gender) " +
-                "VALUES (?,?,?);";
+        String sql = "INSERT INTO tbl_students (user_id, first_name, last_name, gender) " +
+                "VALUES (?,?,?,?);";
 
         KeyHolder keyHolder = new GeneratedKeyHolder();
 
@@ -69,9 +66,10 @@ public class StudentRepository {
                     sql, Statement.RETURN_GENERATED_KEYS
             );
 
-            preparedStatement.setString(1, student.getFirstName());
-            preparedStatement.setString(2, student.getLastName());
-            preparedStatement.setString(3, student.getGender());
+            preparedStatement.setInt(1, student.getUserId().intValue());
+            preparedStatement.setString(2, student.getFirstName());
+            preparedStatement.setString(3, student.getLastName());
+            preparedStatement.setString(4, student.getGender());
             return preparedStatement;
         }, keyHolder);
 
@@ -137,5 +135,15 @@ public class StudentRepository {
     public Integer getTotalStudents() {
         String sql = "SELECT COUNT(*) FROM tbl_students;";
         return jdbcTemplate.queryForObject(sql, Integer.class);
+    }
+
+    public Optional<Student> findByUserId(BigInteger userId) {
+        String sql = """
+                SELECT * FROM tbl_students
+                WHERE user_id = ?;
+                """;
+
+        return jdbcTemplate.query(sql, new BeanPropertyRowMapper<>(Student.class), userId)
+                .stream().findFirst();
     }
 }

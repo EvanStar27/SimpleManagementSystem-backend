@@ -15,6 +15,8 @@ import java.math.BigInteger;
 public class Student {
     private BigInteger studentId;
 
+    private BigInteger userId;
+
     @NotBlank(message = "First Name is required")
     private String firstName;
 
